@@ -43,7 +43,7 @@ public class UserDaoImpl implements UserDao {
             return session.createQuery("from User order by id", User.class).list();
         } catch (HibernateException e) {
             log.error("Database error on findAll", e);
-            throw new DaoException("ОDatabase error on findAll", e);
+            throw new DaoException("Database error on findAll", e);
         }
     }
 
