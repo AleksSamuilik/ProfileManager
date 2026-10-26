@@ -14,22 +14,22 @@ public class UserService {
     static final int MIN_AGE = 0;
     static final int MAX_AGE = 150;
 
-    private static final Pattern EMAIL = Pattern.compile("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$");
+    private static final Pattern EMAIL =
+            Pattern.compile("^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$");
 
     private final UserDao dao;
 
     public UserService(UserDao dao) {
-        this.dao = dao;
+        this.dao = Objects.requireNonNull(dao, "dao");
     }
 
     public User create(String name, String email, int age) {
         User user = new User(validName(name), validEmail(email), validAge(age));
-        dao.create(user);
-        return user;
+        return dao.create(user);
     }
 
     public Optional<User> findById(Long id) {
-        return dao.findById(id);
+        return dao.findById(Objects.requireNonNull(id, "id"));
     }
 
     public List<User> findAll() {
@@ -49,7 +49,7 @@ public class UserService {
     }
 
     public boolean delete(Long id) {
-        return dao.delete(id);
+        return dao.delete(Objects.requireNonNull(id, "id"));
     }
 
     private static String validName(String name) {
