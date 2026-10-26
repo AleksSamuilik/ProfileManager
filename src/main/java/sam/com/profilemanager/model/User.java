@@ -6,6 +6,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import jakarta.persistence.Version;
 import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDateTime;
@@ -18,17 +19,22 @@ public class User {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false)
+    @Column(nullable = false, length = 255)
     private String name;
 
-    @Column(nullable = false, unique = true)
+    @Column(nullable = false, unique = true, length = 255)
     private String email;
 
+    @Column(nullable = false)
     private int age;
 
     @CreationTimestamp
-    @Column(name = "created_at", updatable = false)
+    @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
+
+    @Version
+    @Column(nullable = false)
+    private Long version;
 
     public User() {
     }
@@ -71,8 +77,29 @@ public class User {
         return createdAt;
     }
 
+    public Long getVersion() {
+        return version;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (!(o instanceof User other)) {
+            return false;
+        }
+        return id != null && id.equals(other.id);
+    }
+
+    @Override
+    public int hashCode() {
+        return id == null ? 0 : id.hashCode();
+    }
+
     @Override
     public String toString() {
-        return String.format("#%d | %s | %s | %d | %s", id, name, email, age, createdAt);
+        return String.format("#%d | %s | %s | %d | v=%d | %s",
+                id, name, email, age, version, createdAt);
     }
 }

@@ -1,7 +1,9 @@
 package sam.com.profilemanager.dao;
 
-import org.hibernate.HibernateException;
+import jakarta.persistence.PersistenceException;
+import org.hibernate.FlushMode;
 import org.hibernate.Session;
+import org.hibernate.SessionFactory;
 import org.hibernate.Transaction;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -9,46 +11,54 @@ import sam.com.profilemanager.model.User;
 import sam.com.profilemanager.util.HibernateUtil;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 public class UserDaoImpl implements UserDao {
 
     private static final Logger log = LoggerFactory.getLogger(UserDaoImpl.class);
 
+    private final Supplier<SessionFactory> sessionFactory;
+
+    public UserDaoImpl() {
+        this(HibernateUtil::getSessionFactory);
+    }
+
+    public UserDaoImpl(SessionFactory sessionFactory) {
+        this(() -> sessionFactory);
+    }
+
+    private UserDaoImpl(Supplier<SessionFactory> sessionFactory) {
+        this.sessionFactory = sessionFactory;
+    }
+
     @Override
-    public void create(User user) {
+    public User create(User user) {
+        Objects.requireNonNull(user, "user");
         inTransaction(s -> {
             s.persist(user);
             return null;
         });
         log.info("Created user id={}", user.getId());
+        return user;
     }
 
     @Override
     public Optional<User> findById(Long id) {
-        try (Session session = HibernateUtil.getSessionFactory().openSession()) {
-            session.setDefaultReadOnly(true);
-            return Optional.ofNullable(session.get(User.class, id));
-        } catch (HibernateException e) {
-            log.error("Database error on findById id={}", id, e);
-            throw new DaoException("Database error on findById id=" + id, e);
-        }
+        Objects.requireNonNull(id, "id");
+        return inReadOnlySession(s -> Optional.ofNullable(s.get(User.class, id)));
     }
 
     @Override
     public List<User> findAll() {
-        try (Session session = HibernateUtil.getSessionFactory().openSession()) {
-            session.setDefaultReadOnly(true);
-            return session.createQuery("from User order by id", User.class).list();
-        } catch (HibernateException e) {
-            log.error("Database error on findAll", e);
-            throw new DaoException("Database error on findAll", e);
-        }
+        return inReadOnlySession(s -> s.createQuery("from User order by id", User.class).list());
     }
 
     @Override
     public User update(User user) {
+        Objects.requireNonNull(user, "user");
         User merged = inTransaction(s -> s.merge(user));
         log.info("Updated user id={}", merged.getId());
         return merged;
@@ -56,6 +66,7 @@ public class UserDaoImpl implements UserDao {
 
     @Override
     public boolean delete(Long id) {
+        Objects.requireNonNull(id, "id");
         boolean deleted = inTransaction(s -> {
             User user = s.get(User.class, id);
             if (user == null) {
@@ -70,23 +81,41 @@ public class UserDaoImpl implements UserDao {
         return deleted;
     }
 
+    private <T> T inReadOnlySession(Function<Session, T> work) {
+        try (Session session = sessionFactory.get().openSession()) {
+            session.setDefaultReadOnly(true);
+            session.setHibernateFlushMode(FlushMode.MANUAL);
+            return work.apply(session);
+        } catch (PersistenceException e) {
+            log.error("Database error on read", e);
+            throw new DaoException("Database error on read", e);
+        }
+    }
+
     private <T> T inTransaction(Function<Session, T> work) {
-        Transaction tx = null;
-        try (Session session = HibernateUtil.getSessionFactory().openSession()) {
-            tx = session.beginTransaction();
-            T result = work.apply(session);
-            tx.commit();
-            return result;
-        } catch (HibernateException e) {
-            if (tx != null && tx.isActive()) {
-                try {
-                    tx.rollback();
-                } catch (HibernateException re) {
-                    log.error("Rollback failed", re);
-                }
+        try (Session session = sessionFactory.get().openSession()) {
+            Transaction tx = session.beginTransaction();
+            try {
+                T result = work.apply(session);
+                tx.commit();
+                return result;
+            } catch (RuntimeException e) {
+                rollbackQuietly(tx);
+                throw e;
             }
+        } catch (PersistenceException e) {
             log.error("Database error", e);
             throw new DaoException("Database error", e);
+        }
+    }
+
+    private void rollbackQuietly(Transaction tx) {
+        try {
+            if (tx.isActive()) {
+                tx.rollback();
+            }
+        } catch (RuntimeException re) {
+            log.error("Rollback failed", re);
         }
     }
 }
