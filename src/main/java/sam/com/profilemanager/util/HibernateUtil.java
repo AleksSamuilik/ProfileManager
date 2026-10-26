@@ -2,12 +2,23 @@ package sam.com.profilemanager.util;
 
 import org.hibernate.SessionFactory;
 import org.hibernate.cfg.Configuration;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import sam.com.profilemanager.model.User;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.HashMap;
+import java.util.Map;
 
 public final class HibernateUtil {
 
+    private static final Logger log = LoggerFactory.getLogger(HibernateUtil.class);
+
     static final String PASSWORD_ENV = "PROFILEMANAGER_DB_PASSWORD";
     private static final String PASSWORD_PROPERTY = "hibernate.connection.password";
+    private static final Path DOT_ENV = Path.of(".env");
 
     private static SessionFactory sessionFactory;
 
@@ -35,8 +46,43 @@ public final class HibernateUtil {
             return;
         }
         String value = System.getenv(envName);
-        if (value != null) {
-            configuration.setProperty(property, value);
+        if (value == null) {
+            value = readDotEnv().get(envName);
         }
+        if (value != null && !value.isBlank()) {
+            configuration.setProperty(property, value);
+        } else {
+            log.warn("Environment variable {} is not set; database password will be empty", envName);
+        }
+    }
+
+    private static Map<String, String> readDotEnv() {
+        Map<String, String> result = new HashMap<>();
+        if (!Files.isRegularFile(DOT_ENV)) {
+            return result;
+        }
+        try {
+            for (String line : Files.readAllLines(DOT_ENV)) {
+                String trimmed = line.trim();
+                if (trimmed.isEmpty() || trimmed.startsWith("#")) {
+                    continue;
+                }
+                int eq = trimmed.indexOf('=');
+                if (eq <= 0) {
+                    continue;
+                }
+                String key = trimmed.substring(0, eq).trim();
+                String value = trimmed.substring(eq + 1).trim();
+                if (value.length() >= 2
+                        && ((value.startsWith("\"") && value.endsWith("\""))
+                        || (value.startsWith("'") && value.endsWith("'")))) {
+                    value = value.substring(1, value.length() - 1);
+                }
+                result.put(key, value);
+            }
+        } catch (IOException e) {
+            log.warn("Failed to read {}: {}", DOT_ENV, e.getMessage());
+        }
+        return result;
     }
 }

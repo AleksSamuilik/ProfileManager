@@ -1,8 +1,10 @@
 # Maven
 target/
+*.class
 
 # Логи приложения
 *.log
+profilemanager.log
 
 # IDE
 .idea/
@@ -11,7 +13,20 @@ target/
 .classpath
 .project
 .settings/
+*.ipr
+*.iws
 
 # ОС
 .DS_Store
 Thumbs.db
+
+# Secrets / env
+.env
+.env.local
+*.env
+!.env.example
+
+# Logs
+logs/
+*.log
+profilemanager.log
