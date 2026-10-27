@@ -1,16 +1,16 @@
-package sam.com.profilemanager;
+package com.sam.profilemanager;
 
+import com.sam.profilemanager.dao.DaoException;
+import com.sam.profilemanager.dao.UserDaoImpl;
+import com.sam.profilemanager.model.User;
+import com.sam.profilemanager.service.UserService;
+import com.sam.profilemanager.service.ValidationException;
+import com.sam.profilemanager.util.HibernateUtil;
 import jakarta.persistence.OptimisticLockException;
 import org.hibernate.StaleObjectStateException;
 import org.hibernate.exception.ConstraintViolationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import sam.com.profilemanager.dao.DaoException;
-import sam.com.profilemanager.dao.UserDaoImpl;
-import sam.com.profilemanager.model.User;
-import sam.com.profilemanager.service.UserService;
-import sam.com.profilemanager.service.ValidationException;
-import sam.com.profilemanager.util.HibernateUtil;
 
 import java.util.List;
 import java.util.Scanner;

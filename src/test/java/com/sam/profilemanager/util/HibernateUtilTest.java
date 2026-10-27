@@ -1,4 +1,4 @@
-package sam.com.profilemanager.util;
+package com.sam.profilemanager.util;
 
 import org.hibernate.cfg.Configuration;
 import org.junit.jupiter.api.Test;

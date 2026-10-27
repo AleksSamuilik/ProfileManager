@@ -1,4 +1,4 @@
-package sam.com.profilemanager.model;
+package com.sam.profilemanager.model;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;

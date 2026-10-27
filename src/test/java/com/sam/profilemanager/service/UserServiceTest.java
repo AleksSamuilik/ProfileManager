@@ -1,13 +1,13 @@
-package sam.com.profilemanager.service;
+package com.sam.profilemanager.service;
 
+import com.sam.profilemanager.dao.UserDao;
+import com.sam.profilemanager.model.User;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import sam.com.profilemanager.dao.UserDao;
-import sam.com.profilemanager.model.User;
 
 import java.util.List;
 import java.util.Optional;

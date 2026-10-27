@@ -4,7 +4,7 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>sam.com</groupId>
+    <groupId>com.sam</groupId>
     <artifactId>profilemanager</artifactId>
     <version>1.0</version>
     <name>ProfileManager</name>
@@ -94,7 +94,7 @@
                 <artifactId>exec-maven-plugin</artifactId>
                 <version>3.3.0</version>
                 <configuration>
-                    <mainClass>sam.com.profilemanager.ProfileManagerApp</mainClass>
+                    <mainClass>com.sam.profilemanager.ProfileManagerApp</mainClass>
                 </configuration>
             </plugin>
 
@@ -112,7 +112,7 @@
                             <createDependencyReducedPom>false</createDependencyReducedPom>
                             <transformers>
                                 <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
-                                    <mainClass>sam.com.profilemanager.ProfileManagerApp</mainClass>
+                                    <mainClass>com.sam.profilemanager.ProfileManagerApp</mainClass>
                                 </transformer>
                                 <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
                             </transformers>

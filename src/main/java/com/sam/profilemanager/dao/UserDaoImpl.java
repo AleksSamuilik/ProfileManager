@@ -1,4 +1,4 @@
-package sam.com.profilemanager.dao;
+package com.sam.profilemanager.dao;
 
 import jakarta.persistence.PersistenceException;
 import org.hibernate.FlushMode;
@@ -7,8 +7,8 @@ import org.hibernate.SessionFactory;
 import org.hibernate.Transaction;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import sam.com.profilemanager.model.User;
-import sam.com.profilemanager.util.HibernateUtil;
+import com.sam.profilemanager.model.User;
+import com.sam.profilemanager.util.HibernateUtil;
 
 import java.util.List;
 import java.util.Objects;

@@ -1,11 +1,11 @@
-package sam.com.profilemanager.dao;
+package com.sam.profilemanager.dao;
 
+import com.sam.profilemanager.model.User;
 import org.hibernate.Session;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import sam.com.profilemanager.model.User;
-import sam.com.profilemanager.util.HibernateUtil;
+import com.sam.profilemanager.util.HibernateUtil;
 
 import java.util.List;
 import java.util.Optional;

@@ -1,4 +1,4 @@
-package sam.com.profilemanager.service;
+package com.sam.profilemanager.service;
 
 public class ValidationException extends RuntimeException {
 

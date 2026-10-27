@@ -1,7 +1,7 @@
-package sam.com.profilemanager.service;
+package com.sam.profilemanager.service;
 
-import sam.com.profilemanager.dao.UserDao;
-import sam.com.profilemanager.model.User;
+import com.sam.profilemanager.dao.UserDao;
+import com.sam.profilemanager.model.User;
 
 import java.util.List;
 import java.util.Objects;

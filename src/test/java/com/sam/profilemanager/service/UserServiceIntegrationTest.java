@@ -1,5 +1,8 @@
-package sam.com.profilemanager.service;
+package com.sam.profilemanager.service;
 
+import com.sam.profilemanager.dao.DaoException;
+import com.sam.profilemanager.dao.UserDaoImpl;
+import com.sam.profilemanager.model.User;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
 import org.hibernate.cfg.Configuration;
@@ -10,9 +13,6 @@ import org.junit.jupiter.api.Test;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
-import sam.com.profilemanager.dao.DaoException;
-import sam.com.profilemanager.dao.UserDaoImpl;
-import sam.com.profilemanager.model.User;
 
 import java.util.Optional;
 

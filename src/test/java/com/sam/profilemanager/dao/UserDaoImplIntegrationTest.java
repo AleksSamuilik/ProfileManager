@@ -1,5 +1,6 @@
-package sam.com.profilemanager.dao;
+package com.sam.profilemanager.dao;
 
+import com.sam.profilemanager.model.User;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
 import org.hibernate.cfg.Configuration;
@@ -10,7 +11,6 @@ import org.junit.jupiter.api.Test;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
-import sam.com.profilemanager.model.User;
 
 import java.util.List;
 import java.util.Optional;

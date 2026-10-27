@@ -1,4 +1,4 @@
-package sam.com.profilemanager.dao;
+package com.sam.profilemanager.dao;
 
 public class DaoException extends RuntimeException {
 
