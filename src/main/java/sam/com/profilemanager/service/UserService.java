@@ -14,8 +14,8 @@ public class UserService {
     static final int MIN_AGE = 0;
     static final int MAX_AGE = 150;
 
-    private static final Pattern EMAIL =
-            Pattern.compile("^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$");
+    private static final Pattern EMAIL = Pattern.compile(
+            "^[A-Za-z0-9._%+-]+@[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?(?:\\.[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?)*\\.[A-Za-z]{2,}$");
 
     private final UserDao dao;
 

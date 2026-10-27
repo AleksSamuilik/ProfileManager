@@ -41,7 +41,7 @@ public final class HibernateUtil {
         }
     }
 
-    private static void fillFromEnv(Configuration configuration, String property, String envName) {
+    static void fillFromEnv(Configuration configuration, String property, String envName) {
         if (configuration.getProperty(property) != null) {
             return;
         }
@@ -56,13 +56,17 @@ public final class HibernateUtil {
         }
     }
 
-    private static Map<String, String> readDotEnv() {
+    static Map<String, String> readDotEnv() {
+        return readDotEnv(DOT_ENV);
+    }
+
+    static Map<String, String> readDotEnv(Path path) {
         Map<String, String> result = new HashMap<>();
-        if (!Files.isRegularFile(DOT_ENV)) {
+        if (path == null || !Files.isRegularFile(path)) {
             return result;
         }
         try {
-            for (String line : Files.readAllLines(DOT_ENV)) {
+            for (String line : Files.readAllLines(path)) {   // ← path, не DOT_ENV
                 String trimmed = line.trim();
                 if (trimmed.isEmpty() || trimmed.startsWith("#")) {
                     continue;
@@ -81,7 +85,7 @@ public final class HibernateUtil {
                 result.put(key, value);
             }
         } catch (IOException e) {
-            log.warn("Failed to read {}: {}", DOT_ENV, e.getMessage());
+            log.warn("Failed to read {}: {}", path, e.getMessage());
         }
         return result;
     }
