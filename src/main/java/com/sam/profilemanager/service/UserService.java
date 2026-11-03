@@ -8,7 +8,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 public class UserService {
@@ -23,49 +22,46 @@ public class UserService {
     public List<UserResponse> findAll() {
         return repository.findAll().stream()
                 .map(this::toResponse)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Transactional(readOnly = true)
     public UserResponse findById(Long id) {
-        User user = repository.findById(id)
-                .orElseThrow(() -> new RuntimeException("User not found with id: " + id));
-        return toResponse(user);
+        return repository.findById(id)
+                .map(this::toResponse)
+                .orElseThrow(() -> new IllegalArgumentException("User not found: " + id));
     }
 
     @Transactional
     public UserResponse create(UserRequest request) {
         if (repository.existsByEmail(request.email())) {
-            throw new RuntimeException("User with this email already exists");
+            throw new IllegalArgumentException("Email already in use: " + request.email());
         }
         User user = new User(request.name(), request.email(), request.age());
-        User saved = repository.save(user);
-        return toResponse(saved);
+        return toResponse(repository.save(user));
     }
 
     @Transactional
     public UserResponse update(Long id, UserRequest request) {
         User user = repository.findById(id)
-                .orElseThrow(() -> new RuntimeException("User not found with id: " + id));
+                .orElseThrow(() -> new IllegalArgumentException("User not found: " + id));
 
         repository.findByEmail(request.email())
+                .filter(existing -> existing.getId() == null || !existing.getId().equals(id))
                 .ifPresent(existing -> {
-                    if (!existing.getId().equals(id)) {
-                        throw new RuntimeException("User with this email already exists");
-                    }
+                    throw new IllegalArgumentException("Email already in use: " + request.email());
                 });
 
         user.setName(request.name());
         user.setEmail(request.email());
         user.setAge(request.age());
-        User updated = repository.save(user);
-        return toResponse(updated);
+        return toResponse(repository.saveAndFlush(user));
     }
 
     @Transactional
     public void delete(Long id) {
         if (!repository.existsById(id)) {
-            throw new RuntimeException("User not found with id: " + id);
+            throw new IllegalArgumentException("User not found: " + id);
         }
         repository.deleteById(id);
     }
