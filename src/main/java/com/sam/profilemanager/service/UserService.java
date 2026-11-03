@@ -1,86 +1,83 @@
 package com.sam.profilemanager.service;
 
-import com.sam.profilemanager.dao.UserDao;
+import com.sam.profilemanager.dto.UserRequest;
+import com.sam.profilemanager.dto.UserResponse;
 import com.sam.profilemanager.model.User;
+import com.sam.profilemanager.repository.UserRepository;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
+@Service
 public class UserService {
 
-    static final int MAX_TEXT_LENGTH = 255;
-    static final int MIN_AGE = 0;
-    static final int MAX_AGE = 150;
+    private final UserRepository repository;
 
-    private static final Pattern EMAIL = Pattern.compile(
-            "^[A-Za-z0-9._%+-]+@[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?(?:\\.[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?)*\\.[A-Za-z]{2,}$");
-
-    private final UserDao dao;
-
-    public UserService(UserDao dao) {
-        this.dao = Objects.requireNonNull(dao, "dao");
+    public UserService(UserRepository repository) {
+        this.repository = repository;
     }
 
-    public User create(String name, String email, int age) {
-        User user = new User(validName(name), validEmail(email), validAge(age));
-        return dao.create(user);
+    @Transactional(readOnly = true)
+    public List<UserResponse> findAll() {
+        return repository.findAll().stream()
+                .map(this::toResponse)
+                .collect(Collectors.toList());
     }
 
-    public Optional<User> findById(Long id) {
-        return dao.findById(Objects.requireNonNull(id, "id"));
+    @Transactional(readOnly = true)
+    public UserResponse findById(Long id) {
+        User user = repository.findById(id)
+                .orElseThrow(() -> new RuntimeException("User not found with id: " + id));
+        return toResponse(user);
     }
 
-    public List<User> findAll() {
-        return dao.findAll();
-    }
-
-    public User update(User user, String name, String email, Integer age) {
-        Objects.requireNonNull(user, "user");
-        String newName = name == null ? user.getName() : validName(name);
-        String newEmail = email == null ? user.getEmail() : validEmail(email);
-        int newAge = age == null ? user.getAge() : validAge(age);
-
-        user.setName(newName);
-        user.setEmail(newEmail);
-        user.setAge(newAge);
-        return dao.update(user);
-    }
-
-    public boolean delete(Long id) {
-        return dao.delete(Objects.requireNonNull(id, "id"));
-    }
-
-    private static String validName(String name) {
-        String value = name == null ? "" : name.trim();
-        if (value.isEmpty()) {
-            throw new ValidationException("Name must not be empty");
+    @Transactional
+    public UserResponse create(UserRequest request) {
+        if (repository.existsByEmail(request.email())) {
+            throw new RuntimeException("User with this email already exists");
         }
-        if (value.length() > MAX_TEXT_LENGTH) {
-            throw new ValidationException("Name is too long (max " + MAX_TEXT_LENGTH + " characters)");
-        }
-        return value;
+        User user = new User(request.name(), request.email(), request.age());
+        User saved = repository.save(user);
+        return toResponse(saved);
     }
 
-    private static String validEmail(String email) {
-        String value = email == null ? "" : email.trim();
-        if (value.isEmpty()) {
-            throw new ValidationException("Email must not be empty");
-        }
-        if (value.length() > MAX_TEXT_LENGTH) {
-            throw new ValidationException("Email is too long (max " + MAX_TEXT_LENGTH + " characters)");
-        }
-        if (!EMAIL.matcher(value).matches()) {
-            throw new ValidationException("Email is invalid");
-        }
-        return value;
+    @Transactional
+    public UserResponse update(Long id, UserRequest request) {
+        User user = repository.findById(id)
+                .orElseThrow(() -> new RuntimeException("User not found with id: " + id));
+
+        repository.findByEmail(request.email())
+                .ifPresent(existing -> {
+                    if (!existing.getId().equals(id)) {
+                        throw new RuntimeException("User with this email already exists");
+                    }
+                });
+
+        user.setName(request.name());
+        user.setEmail(request.email());
+        user.setAge(request.age());
+        User updated = repository.save(user);
+        return toResponse(updated);
     }
 
-    private static int validAge(int age) {
-        if (age < MIN_AGE || age > MAX_AGE) {
-            throw new ValidationException("Age must be between " + MIN_AGE + " and " + MAX_AGE);
+    @Transactional
+    public void delete(Long id) {
+        if (!repository.existsById(id)) {
+            throw new RuntimeException("User not found with id: " + id);
         }
-        return age;
+        repository.deleteById(id);
+    }
+
+    private UserResponse toResponse(User user) {
+        return new UserResponse(
+                user.getId(),
+                user.getName(),
+                user.getEmail(),
+                user.getAge(),
+                user.getCreatedAt(),
+                user.getVersion()
+        );
     }
 }
