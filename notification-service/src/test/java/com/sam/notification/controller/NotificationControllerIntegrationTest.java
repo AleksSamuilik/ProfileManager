@@ -8,6 +8,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -80,5 +81,15 @@ class NotificationControllerIntegrationTest extends AbstractMailIntegrationTest 
                 .andExpect(jsonPath("$.error").exists());
 
         assertThat(greenMail.getReceivedMessages()).isEmpty();
+    }
+
+    @Test
+    void openApiDocs_DescribeNotificationEndpoint() throws Exception {
+        mockMvc.perform(get("/v3/api-docs"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.openapi").exists())
+                .andExpect(jsonPath("$.paths['/api/notifications'].post.summary").exists())
+                .andExpect(jsonPath("$.paths['/api/notifications'].post.responses['200']").exists())
+                .andExpect(jsonPath("$.paths['/api/notifications'].post.responses['502']").exists());
     }
 }

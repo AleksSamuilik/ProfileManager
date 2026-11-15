@@ -1,6 +1,7 @@
 package com.sam.profilemanager.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.jayway.jsonpath.JsonPath;
 import com.sam.profilemanager.AbstractIntegrationTest;
 import com.sam.profilemanager.dto.UserRequest;
 import com.sam.profilemanager.event.UserEvent;
@@ -13,6 +14,10 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.net.URI;
+
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.endsWith;
 import static org.hamcrest.Matchers.hasSize;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -23,6 +28,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -52,9 +58,18 @@ class UserControllerIntegrationTest extends AbstractIntegrationTest {
 
         mockMvc.perform(get("/api/users"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$", hasSize(2)))
-                .andExpect(jsonPath("$[0].name").value("Alex"))
-                .andExpect(jsonPath("$[1].name").value("Maria"));
+                .andExpect(jsonPath("$._embedded.users", hasSize(2)))
+                .andExpect(jsonPath("$._embedded.users[0].name").value("Alex"))
+                .andExpect(jsonPath("$._embedded.users[1].name").value("Maria"))
+                .andExpect(jsonPath("$._links.self.href").value(endsWith("/api/users")))
+                .andExpect(jsonPath("$._embedded.users[0]._links.self.href").value(containsString("/api/users/")));
+    }
+
+    @Test
+    void getAllUsers_ReturnsSelfLinkWhenNoUsers() throws Exception {
+        mockMvc.perform(get("/api/users"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$._links.self.href").value(endsWith("/api/users")));
     }
 
     @Test
@@ -65,7 +80,27 @@ class UserControllerIntegrationTest extends AbstractIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(saved.getId()))
                 .andExpect(jsonPath("$.name").value("Alex"))
-                .andExpect(jsonPath("$.email").value("alex@example.com"));
+                .andExpect(jsonPath("$.email").value("alex@example.com"))
+                .andExpect(jsonPath("$._links.self.href").value(endsWith("/api/users/" + saved.getId())))
+                .andExpect(jsonPath("$._links.update.href").value(endsWith("/api/users/" + saved.getId())))
+                .andExpect(jsonPath("$._links.delete.href").value(endsWith("/api/users/" + saved.getId())))
+                .andExpect(jsonPath("$._links.users.href").value(endsWith("/api/users")));
+    }
+
+    @Test
+    void getUserById_LinksCanBeFollowed() throws Exception {
+        User saved = userRepository.save(new User("Alex", "alex@example.com", 25));
+
+        String body = mockMvc.perform(get("/api/users/{id}", saved.getId()))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+
+        // Переходим по ссылке "users" из ответа: она должна вести на рабочий список с этим же пользователем
+        String usersHref = JsonPath.read(body, "$._links.users.href");
+        mockMvc.perform(get(URI.create(usersHref)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$._embedded.users", hasSize(1)))
+                .andExpect(jsonPath("$._embedded.users[0].id").value(saved.getId()));
     }
 
     @Test
@@ -83,6 +118,8 @@ class UserControllerIntegrationTest extends AbstractIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())
+                .andExpect(header().string("Location", containsString("/api/users/")))
+                .andExpect(jsonPath("$._links.self.href").value(containsString("/api/users/")))
                 .andExpect(jsonPath("$.id").exists())
                 .andExpect(jsonPath("$.name").value("Alex"))
                 .andExpect(jsonPath("$.email").value("alex@example.com"))
@@ -130,7 +167,8 @@ class UserControllerIntegrationTest extends AbstractIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.name").value("Alexander"))
                 .andExpect(jsonPath("$.age").value(26))
-                .andExpect(jsonPath("$.version").value(1));
+                .andExpect(jsonPath("$.version").value(1))
+                .andExpect(jsonPath("$._links.self.href").value(endsWith("/api/users/" + saved.getId())));
     }
 
     @Test

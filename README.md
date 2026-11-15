@@ -55,6 +55,38 @@ curl -X POST localhost:8081/api/notifications -H 'Content-Type: application/json
 
 `operation` — `CREATE` или `DELETE`. Ошибки: `400` — невалидный email/операция, `502` — SMTP недоступен.
 
+## Swagger и HATEOAS
+
+API документировано через Springdoc OpenAPI — его можно изучать и пробовать прямо в браузере:
+
+| Сервис | Swagger UI | OpenAPI (JSON) |
+|---|---|---|
+| `user-service` | http://localhost:8080/swagger-ui.html | http://localhost:8080/v3/api-docs |
+| `notification-service` | http://localhost:8081/swagger-ui.html | http://localhost:8081/v3/api-docs |
+
+`user-service` поддерживает HATEOAS (формат HAL): вместе с данными ответ содержит блок `_links` со ссылками
+для навигации по API.
+
+```json
+GET /api/users/1
+{
+  "id": 1, "name": "Alex", "email": "alex@example.com", "age": 25,
+  "createdAt": "2026-11-16T10:15:30", "version": 0,
+  "_links": {
+    "self":   { "href": "http://localhost:8080/api/users/1" },
+    "update": { "href": "http://localhost:8080/api/users/1" },
+    "delete": { "href": "http://localhost:8080/api/users/1" },
+    "users":  { "href": "http://localhost:8080/api/users" }
+  }
+}
+```
+
+- `GET /api/users` возвращает коллекцию: пользователи лежат в `_embedded.users`, у каждого свои `_links`,
+  у самой коллекции — ссылка `self`. Если пользователей нет, `_embedded` в ответе отсутствует (так устроен HAL).
+- `POST /api/users` отвечает `201 Created` с заголовком `Location` — адресом созданного пользователя.
+- `update` и `delete` указывают на тот же адрес, что и `self`; действие определяется HTTP-методом (PUT и DELETE).
+- Формат тела ответов с ошибками: `{"error": "..."}`.
+
 ### Настройка почты (notification-service)
 
 Переменные окружения: `MAIL_HOST`, `MAIL_PORT`, `MAIL_USERNAME`, `MAIL_PASSWORD`, `MAIL_SMTP_AUTH`,
