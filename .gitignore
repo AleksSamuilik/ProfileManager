@@ -21,10 +21,10 @@ profilemanager.log
 Thumbs.db
 
 # Secrets / env
-.env
+user-service/.env
 .env.local
 *.env
-!.env.example
+!user-service/.env.example
 
 # Logs
 logs/

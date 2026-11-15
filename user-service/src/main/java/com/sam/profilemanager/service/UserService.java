@@ -7,10 +7,15 @@ import com.sam.profilemanager.model.User;
 import com.sam.profilemanager.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.event.TransactionalEventListener;
 
 import java.util.List;
 
+import static org.springframework.transaction.event.TransactionPhase.AFTER_COMMIT;
+
+@Service
 public class UserService {
 
     private final UserRepository repository;
@@ -39,7 +44,7 @@ public class UserService {
                 .orElseThrow(() -> new IllegalArgumentException("User not found: " + id));
     }
 
-    @Transactional
+    @TransactionalEventListener(phase = AFTER_COMMIT)
     public UserResponse create(UserRequest request) {
         if (repository.existsByEmail(request.email())) {
             throw new IllegalArgumentException("Email already in use: " + request.email());
@@ -67,7 +72,7 @@ public class UserService {
         return toResponse(repository.saveAndFlush(user));
     }
 
-    @Transactional
+    @TransactionalEventListener(phase = AFTER_COMMIT)
     public void delete(Long id) {
         User user = repository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("User not found: " + id));
