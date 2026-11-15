@@ -6,8 +6,7 @@
         </encoder>
     </appender>
 
-    <logger name="sam.com.profilemanager" level="DEBUG"/>
-    <logger name="org.hibernate.SQL" level="DEBUG"/>
+    <logger name="com.sam.profilemanager" level="DEBUG"/>
 
     <root level="WARN">
         <appender-ref ref="FILE"/>

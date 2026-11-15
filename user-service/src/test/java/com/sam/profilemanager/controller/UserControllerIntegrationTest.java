@@ -3,6 +3,7 @@ package com.sam.profilemanager.controller;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sam.profilemanager.AbstractIntegrationTest;
 import com.sam.profilemanager.dto.UserRequest;
+import com.sam.profilemanager.event.UserEvent;
 import com.sam.profilemanager.model.User;
 import com.sam.profilemanager.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -13,6 +14,11 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.hamcrest.Matchers.hasSize;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -22,6 +28,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @AutoConfigureMockMvc
 class UserControllerIntegrationTest extends AbstractIntegrationTest {
+
+    private static final String TOPIC = "user-events";
 
     @Autowired
     private MockMvc mockMvc;
@@ -61,14 +69,14 @@ class UserControllerIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
-    void getUserById_ReturnsBadRequestWhenNotFound() throws Exception {
+    void getUserById_ReturnsNotFoundWhenMissing() throws Exception {
         mockMvc.perform(get("/api/users/{id}", 9999L))
-                .andExpect(status().isBadRequest())
+                .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.error").value("User not found: 9999"));
     }
 
     @Test
-    void createUser_ReturnsCreatedUserAndDto() throws Exception {
+    void createUser_ReturnsCreatedUserAndSendsKafkaEvent() throws Exception {
         UserRequest request = new UserRequest("Alex", "alex@example.com", 25);
 
         mockMvc.perform(post("/api/users")
@@ -79,6 +87,9 @@ class UserControllerIntegrationTest extends AbstractIntegrationTest {
                 .andExpect(jsonPath("$.name").value("Alex"))
                 .andExpect(jsonPath("$.email").value("alex@example.com"))
                 .andExpect(jsonPath("$.version").value(0));
+
+        verify(kafkaTemplate).send(TOPIC, "alex@example.com",
+                new UserEvent(UserEvent.CREATE, "alex@example.com"));
     }
 
     @Test
@@ -90,18 +101,22 @@ class UserControllerIntegrationTest extends AbstractIntegrationTest {
                         .content(objectMapper.writeValueAsString(invalidRequest)))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.error").exists());
+
+        verify(kafkaTemplate, never()).send(anyString(), anyString(), any(UserEvent.class));
     }
 
     @Test
-    void createUser_ReturnsBadRequestWhenEmailAlreadyExists() throws Exception {
+    void createUser_ReturnsConflictWhenEmailAlreadyExists() throws Exception {
         userRepository.save(new User("Alex", "alex@example.com", 25));
         UserRequest request = new UserRequest("Maria", "alex@example.com", 30);
 
         mockMvc.perform(post("/api/users")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isBadRequest())
+                .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.error").value("Email already in use: alex@example.com"));
+
+        verify(kafkaTemplate, never()).send(anyString(), anyString(), any(UserEvent.class));
     }
 
     @Test
@@ -119,7 +134,7 @@ class UserControllerIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
-    void updateUser_ReturnsBadRequestWhenChangingToExistingEmail() throws Exception {
+    void updateUser_ReturnsConflictWhenChangingToExistingEmail() throws Exception {
         userRepository.save(new User("Alex", "alex@example.com", 25));
         User maria = userRepository.save(new User("Maria", "maria@example.com", 30));
         UserRequest request = new UserRequest("Maria", "alex@example.com", 30);
@@ -127,25 +142,30 @@ class UserControllerIntegrationTest extends AbstractIntegrationTest {
         mockMvc.perform(put("/api/users/{id}", maria.getId())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isBadRequest())
+                .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.error").value("Email already in use: alex@example.com"));
     }
 
     @Test
-    void deleteUser_ReturnsNoContentAndRemovesUser() throws Exception {
+    void deleteUser_ReturnsNoContentRemovesUserAndSendsKafkaEvent() throws Exception {
         User saved = userRepository.save(new User("Alex", "alex@example.com", 25));
 
         mockMvc.perform(delete("/api/users/{id}", saved.getId()))
                 .andExpect(status().isNoContent());
 
         mockMvc.perform(get("/api/users/{id}", saved.getId()))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isNotFound());
+
+        verify(kafkaTemplate).send(eq(TOPIC), eq("alex@example.com"),
+                eq(new UserEvent(UserEvent.DELETE, "alex@example.com")));
     }
 
     @Test
-    void deleteUser_ReturnsBadRequestWhenNotFound() throws Exception {
+    void deleteUser_ReturnsNotFoundWhenMissing() throws Exception {
         mockMvc.perform(delete("/api/users/{id}", 9999L))
-                .andExpect(status().isBadRequest())
+                .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.error").value("User not found: 9999"));
+
+        verify(kafkaTemplate, never()).send(anyString(), anyString(), any(UserEvent.class));
     }
 }
